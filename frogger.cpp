@@ -1,10 +1,21 @@
 #include <iostream>
 #include <chrono>
 #include <random>
+#include <map>
+#include <tuple>
+#include <string>
 
 #include "ITUGames.h"
 
 #pragma region Engine State
+
+struct ScreenBuffer
+{
+    std::map<std::tuple<int, int>, char> buffer;
+};
+
+ScreenBuffer currentBuffer;
+ScreenBuffer nextBuffer;
 
 std::chrono::time_point<std::chrono::steady_clock> time_start;
 std::chrono::time_point<std::chrono::steady_clock> time_end;
@@ -78,14 +89,19 @@ void ProcessEvents();
 void Update(std::chrono::time_point<std::chrono::steady_clock> time);
 void Render();
 
+void SwapBuffersAndRender();
+void ResolveConflicts(ScreenBuffer &buffer);
+void WriteStringToBuffer(ScreenBuffer &buffer, int x, int y, const std::string &str);
+void WriteCharToBuffer(ScreenBuffer &buffer, int x, int y, char ch);
+
 int main()
 {
     // setup
     std::srand(std::time(nullptr)); // initializes random generator
-    ITUGames::Console::ClearScreen();
     ITUGames::Console::GotoTop();
     ITUGames::Console::HideCursor();
     finish_line_length = ITUGames::Console::GetTerminalHeight();
+    ITUGames::Console::ClearScreen();
 
     // declare starting position
     position = std::make_tuple(20, 10);
@@ -115,6 +131,8 @@ int main()
         ProcessEvents();
         Update(time_start_update);
         Render();
+        // ResolveConflicts(nextBuffer);
+        SwapBuffersAndRender();
 
         time_end = std::chrono::steady_clock::now();
         time_elapsed = time_end - time_start;
@@ -141,15 +159,21 @@ int main()
         ITUGames::Console::GotoTop();
         if (bDebug)
         {
-            std::cout << "FPS                 : " << static_cast<double>(1) / (time_elapsed.count()) << std::endl;
-            std::cout << "Elapsed(ms)         : " << time_elapsed.count() * static_cast<double>(1000) << std::endl;
-            std::cout << "Computation(ms)     : " << time_computation.count() * static_cast<double>(1000) << std::endl;
-            std::cout << "Target(ms)          : " << desired_frame_time * static_cast<double>(1000) << std::endl;
+            std::cout << "FPS                 : " << std::flush << static_cast<double>(1) / (time_elapsed.count()) << std::endl;
+            std::cout << "Elapsed(ms)         : " << std::flush << time_elapsed.count() * static_cast<double>(1000) << std::endl;
+            std::cout << "Computation(ms)     : " << std::flush << time_computation.count() * static_cast<double>(1000) << std::endl;
+            std::cout << "Target(ms)          : " << std::flush << desired_frame_time * static_cast<double>(1000) << std::endl;
         }
         else
         {
-            std::cout << "Wins   : " << win_amount << std::endl;
-            std::cout << "Deaths : " << death_amount << std::endl;
+            std::cout << "Wins   : " << std::flush << win_amount << std::endl;
+            std::cout << "Deaths : " << std::flush << death_amount << std::endl;
+        }
+        // Print finish line
+        ITUGames::Console::GotoCoords(0, finish_line);
+        for (int i = 0; i < finish_line_length; i++)
+        {
+            std::cout << '#' << std::flush;
         }
     }
 
@@ -229,7 +253,17 @@ void Update(std::chrono::time_point<std::chrono::steady_clock> time_start)
         {
             std::get<0>(obstacle)++;
         }
+        // ITUGames::Console::ClearScreen();
         bStep = false;
+        // Print each obstacle
+        for (int i = 0; i < obstacleArray.size(); i += 4)
+        {
+            if (std::get<0>(obstacleArray[i]) > 4 && std::get<0>(obstacleArray[i]) < finish_line_length - 4)
+            {
+                WriteStringToBuffer(nextBuffer, std::get<0>(obstacleArray[i]), std::get<1>(obstacleArray[i]), "XXXX");
+                WriteStringToBuffer(nextBuffer, (std::get<0>(obstacleArray[i]) - 1), std::get<1>(obstacleArray[i]), " ");
+            }
+        }
     }
 
     // Check if our obstacles reach the end, then move them to the start
@@ -252,8 +286,32 @@ void Update(std::chrono::time_point<std::chrono::steady_clock> time_start)
     }
 }
 
-// Render the game state
 void Render()
+{
+
+    // Print player
+    if (bZero)
+    {
+        WriteCharToBuffer(nextBuffer, std::get<0>(position), std::get<1>(position), '0');
+    }
+    else
+        WriteCharToBuffer(nextBuffer, std::get<0>(position), std::get<1>(position), 'O');
+
+    // Clear previous player position
+    WriteCharToBuffer(nextBuffer, std::get<0>(last_position), std::get<1>(last_position), ' ');
+
+    /*     // Print each obstacle
+        for (int i = 0; i < obstacleArray.size(); i += 4)
+        {
+            if (std::get<0>(obstacleArray[i]) > 4 && std::get<0>(obstacleArray[i]) < finish_line_length - 4)
+            {
+                WriteStringToBuffer(nextBuffer, std::get<0>(obstacleArray[i]), std::get<1>(obstacleArray[i]), "XXXX");
+            }
+        } */
+}
+
+// Render the game state
+/* void Render()
 {
     // Clear each row
     if (time_elapsed_update % (1000000000 / ticks_per_second) < (500000000 / ticks_per_second))
@@ -265,7 +323,7 @@ void Render()
     ITUGames::Console::GotoCoords(0, finish_line);
     for (int i = 0; i < finish_line_length; i++)
     {
-        ITUGames::Console::PrintStr("#");
+        std::cout << '#' << std::flush;
     }
 
     // Print player
@@ -289,8 +347,66 @@ void Render()
             if (std::get<0>(obstacleArray[i]) > 4 && std::get<0>(obstacleArray[i]) < finish_line_length - 4)
             {
                 ITUGames::Console::GotoCoords(std::get<0>(obstacleArray[i]), std::get<1>(obstacleArray[i]));
-                ITUGames::Console::PrintStr("XXXX");
+                std::cout << "XXXX" << std::flush << "\r";
             }
         }
     }
+} */
+
+void WriteCharToBuffer(ScreenBuffer &buffer, int x, int y, char ch)
+{
+    buffer.buffer[std::make_tuple(x, y)] = ch;
+}
+
+void WriteStringToBuffer(ScreenBuffer &buffer, int x, int y, const std::string &str)
+{
+    for (size_t i = 0; i < str.size(); ++i)
+    {
+        buffer.buffer[std::make_tuple(x + i, y)] = str[i];
+    }
+}
+
+void ResolveConflicts(ScreenBuffer &buffer)
+{
+    // Implement any conflict resolution logic if needed
+    // For simplicity, we keep the last written character
+
+    // Remove duplicate entries in the buffer
+    for (auto it = buffer.buffer.begin(); it != buffer.buffer.end();)
+    {
+        int x = std::get<0>(it->first);
+        int y = std::get<1>(it->first);
+        char ch = it->second;
+
+        // Check if the current position in the buffer is the same as the current position in the current buffer
+        if (currentBuffer.buffer.count(std::make_tuple(x, y)) > 0 && currentBuffer.buffer[std::make_tuple(x, y)] == ch)
+        {
+            // Remove the entry from the buffer
+            it = buffer.buffer.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
+void SwapBuffersAndRender()
+{
+    // Clear the console screen
+    // ITUGames::Console::ClearScreen();
+
+    // Render the next buffer to the console
+    for (const auto &entry : nextBuffer.buffer)
+    {
+        int x = std::get<0>(entry.first);
+        int y = std::get<1>(entry.first);
+        char ch = entry.second;
+        ITUGames::Console::GotoCoords(x, y);
+        std::cout << ch << std::flush;
+    }
+
+    // Swap buffers
+    currentBuffer = nextBuffer;
+    nextBuffer.buffer.clear();
 }
