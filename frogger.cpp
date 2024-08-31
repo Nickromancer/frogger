@@ -18,6 +18,8 @@ std::tuple<int, int> position;
 
 std::tuple<int, int> last_position;
 
+bool bDebug = true;
+
 // Calculate the desired time per frame in milliseconds
 double desired_frame_time = 1.0 / 60.0;
 
@@ -85,11 +87,14 @@ int main()
         time_end = std::chrono::steady_clock::now();
         time_elapsed = time_end - time_start;
 
-        ITUGames::Console::GotoTop();
-        std::cout << "FPS                 : " << static_cast<double>(1) / (time_elapsed.count()) << std::endl;
-        std::cout << "Elapsed(ms)         : " << time_elapsed.count() * static_cast<double>(1000) << std::endl;
-        std::cout << "Computation(ms)     : " << time_computation.count() * static_cast<double>(1000) << std::endl;
-        std::cout << "Target(ms)          : " << desired_frame_time * static_cast<double>(1000) << std::endl;
+        if (bDebug)
+        {
+            ITUGames::Console::GotoTop();
+            std::cout << "FPS                 : " << static_cast<double>(1) / (time_elapsed.count()) << std::endl;
+            std::cout << "Elapsed(ms)         : " << time_elapsed.count() * static_cast<double>(1000) << std::endl;
+            std::cout << "Computation(ms)     : " << time_computation.count() * static_cast<double>(1000) << std::endl;
+            std::cout << "Target(ms)          : " << desired_frame_time * static_cast<double>(1000) << std::endl;
+        }
     }
 
     return 0;
@@ -125,6 +130,10 @@ void ProcessEvents()
     case ITUGames::Console::KEY_D:
         last_position = position;
         std::get<0>(position)++;
+        break;
+    case ITUGames::Console::KEY_1:
+        bDebug = !bDebug;
+        ITUGames::Console::ClearScreen();
         break;
     default:
         break;
