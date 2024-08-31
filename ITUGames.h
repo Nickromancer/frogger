@@ -89,7 +89,6 @@ namespace ITUGames
 		constexpr unsigned char KEY_1 = 49;
 		constexpr unsigned char KEY_2 = 50;
 		constexpr unsigned char KEY_3 = 51;
-		std::tuple<int, int> position;
 
 		inline unsigned char GetCharacter(bool bBlocking = true)
 		{
@@ -238,7 +237,7 @@ namespace ITUGames
 		/// <returns>`false` if there was a problem retrieving the terminal size</returns>
 		inline bool GetTerminalSize(int &rows, int &cols)
 		{
-			constexpr int SIZE = 50;
+			constexpr int SIZE = 100;
 			char ch;
 			char buffer[SIZE];
 			int i = 0;
