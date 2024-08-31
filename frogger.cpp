@@ -13,6 +13,9 @@ std::chrono::duration<double> time_elapsed;
 // Time in update function
 std::chrono::time_point<std::chrono::steady_clock> time_start_update;
 
+// time after 1 second of ticks
+long long time_elapsed_update;
+
 // Positon of player
 std::tuple<int, int> position;
 // Start positon of player
@@ -26,16 +29,17 @@ int finish_line_length;
 
 // Bool for showing debugg log
 bool bDebug = false;
+
+// Bool for flipping player
 bool bZero = true;
+
+// Bool for obstacles triggering
 bool bStep = false;
 
 // Number of wins
 int win_amount = 0;
 // Number of deaths
 int death_amount;
-
-// Obstacle
-std::tuple<int, int> obstacle = std::make_tuple(20, 10);
 
 // Obstacle Array
 std::vector<std::tuple<int, int>> obstacleArray;
@@ -51,6 +55,7 @@ int spacing = 5;
 
 // Offset from top
 int offset = 10;
+
 // Calculate the desired time per frame in milliseconds
 double desired_frame_time = 1.0 / 60.0;
 
@@ -90,6 +95,7 @@ int main()
     // for the update loop
     time_start_update = std::chrono::steady_clock::now();
 
+    // Initialize obstacles into vector
     for (int i = offset; i < (rows * spacing) + offset; i += spacing)
     {
         for (int k = 0; k < finish_line_length; k += 10)
@@ -131,6 +137,7 @@ int main()
         time_end = std::chrono::steady_clock::now();
         time_elapsed = time_end - time_start;
 
+        // Print either debug log or stats
         ITUGames::Console::GotoTop();
         if (bDebug)
         {
@@ -160,9 +167,8 @@ void LongComputation()
 // Read Input from player and system
 void ProcessEvents()
 {
-    // ITUGames::Console::ClearScreen();
+    // Check input from player
     char command = ITUGames::Console::GetCharacter(false);
-
     switch (command)
     {
     case ITUGames::Console::KEY_W:
@@ -195,8 +201,9 @@ void Update(std::chrono::time_point<std::chrono::steady_clock> time_start)
 {
     long long time_start_nanoseconds = time_start.time_since_epoch().count();
     long long time_now_nanoseconds = std::chrono::steady_clock::now().time_since_epoch().count();
-    long long time_elapsed_update = time_now_nanoseconds - time_start_nanoseconds;
+    time_elapsed_update = time_now_nanoseconds - time_start_nanoseconds;
 
+    // Set out player to flip after each half fps
     if ((time_elapsed_update % 1000000000) < 500000000)
     {
         bZero = false;
@@ -204,15 +211,18 @@ void Update(std::chrono::time_point<std::chrono::steady_clock> time_start)
     else
         bZero = true;
 
+    // Set our obstacles to tick once after each half fps
     if (time_elapsed_update % (1000000000 / ticks_per_second) > (500000000 / ticks_per_second))
         bStep = true;
 
+    // If the player reaches the finish line, get a point and reset position
     if (std::get<1>(position) == finish_line)
     {
         win_amount++;
         position = start_position;
     }
 
+    // Moves all obstacles after one tick each half second
     if (bStep && time_elapsed_update % (1000000000 / ticks_per_second) < (500000000 / ticks_per_second))
     {
         for (std::tuple<int, int> &obstacle : obstacleArray)
@@ -221,6 +231,8 @@ void Update(std::chrono::time_point<std::chrono::steady_clock> time_start)
         }
         bStep = false;
     }
+
+    // Check if our obstacles reach the end, then move them to the start
     for (std::tuple<int, int> &obstacle : obstacleArray)
     {
         if (std::get<0>(obstacle) == finish_line_length)
@@ -229,6 +241,7 @@ void Update(std::chrono::time_point<std::chrono::steady_clock> time_start)
         }
     }
 
+    // If the player touches a obstacle, die and reset position
     for (std::tuple<int, int> &obstacle : obstacleArray)
     {
         if (std::get<0>(position) == std::get<0>(obstacle) && std::get<1>(position) == std::get<1>(obstacle))
@@ -243,9 +256,11 @@ void Update(std::chrono::time_point<std::chrono::steady_clock> time_start)
 void Render()
 {
     // Clear each row
-    for (int i = 0; i < rows; i++)
-        ITUGames::Console::ClearLine(offset + (spacing * i));
-
+    if (time_elapsed_update % (1000000000 / ticks_per_second) < (500000000 / ticks_per_second))
+    {
+        for (int i = 0; i < rows; i++)
+            ITUGames::Console::ClearLine(offset + (spacing * i));
+    }
     // Print finish line
     ITUGames::Console::GotoCoords(0, finish_line);
     for (int i = 0; i < finish_line_length; i++)
@@ -267,12 +282,15 @@ void Render()
     ITUGames::Console::RenderCharacter(' ');
 
     // Print each obstacle
-    for (int i = 0; i < obstacleArray.size(); i += 4)
+    if (time_elapsed_update % (1000000000 / ticks_per_second) < (500000000 / ticks_per_second))
     {
-        if (std::get<0>(obstacleArray[i]) > 4 && std::get<0>(obstacleArray[i]) < finish_line_length - 4)
+        for (int i = 0; i < obstacleArray.size(); i += 4)
         {
-            ITUGames::Console::GotoCoords(std::get<0>(obstacleArray[i]), std::get<1>(obstacleArray[i]));
-            ITUGames::Console::PrintStr("XXXX");
+            if (std::get<0>(obstacleArray[i]) > 4 && std::get<0>(obstacleArray[i]) < finish_line_length - 4)
+            {
+                ITUGames::Console::GotoCoords(std::get<0>(obstacleArray[i]), std::get<1>(obstacleArray[i]));
+                ITUGames::Console::PrintStr("XXXX");
+            }
         }
     }
 }
