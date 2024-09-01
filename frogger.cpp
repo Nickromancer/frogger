@@ -35,7 +35,7 @@ std::tuple<int, int> start_position = std::make_tuple(ITUGames::Console::GetTerm
 // Previous positon of player
 std::tuple<int, int> last_position = std::make_tuple(-1, -1);
 
-int finish_line = 5;
+int finish_line_height = 5;
 int finish_line_length;
 
 // Bool for showing debugg log
@@ -131,7 +131,7 @@ int main()
         ProcessEvents();
         Update(time_start_update);
         Render();
-        // ResolveConflicts(nextBuffer);
+        ResolveConflicts(currentBuffer);
         SwapBuffersAndRender();
 
         time_end = std::chrono::steady_clock::now();
@@ -170,7 +170,7 @@ int main()
             std::cout << "Deaths : " << std::flush << death_amount << std::endl;
         }
         // Print finish line
-        ITUGames::Console::GotoCoords(0, finish_line);
+        ITUGames::Console::GotoCoords(0, finish_line_height);
         for (int i = 0; i < finish_line_length; i++)
         {
             std::cout << '#' << std::flush;
@@ -240,7 +240,7 @@ void Update(std::chrono::time_point<std::chrono::steady_clock> time_start)
         bStep = true;
 
     // If the player reaches the finish line, get a point and reset position
-    if (std::get<1>(position) == finish_line)
+    if (std::get<1>(position) == finish_line_height)
     {
         win_amount++;
         position = start_position;
@@ -253,9 +253,9 @@ void Update(std::chrono::time_point<std::chrono::steady_clock> time_start)
         {
             std::get<0>(obstacle)++;
         }
-        // ITUGames::Console::ClearScreen();
+
         bStep = false;
-        // Print each obstacle
+        // Write each obstacle to buffer
         for (int i = 0; i < obstacleArray.size(); i += 4)
         {
             if (std::get<0>(obstacleArray[i]) > 4 && std::get<0>(obstacleArray[i]) < finish_line_length - 4)
@@ -299,59 +299,7 @@ void Render()
 
     // Clear previous player position
     WriteCharToBuffer(nextBuffer, std::get<0>(last_position), std::get<1>(last_position), ' ');
-
-    /*     // Print each obstacle
-        for (int i = 0; i < obstacleArray.size(); i += 4)
-        {
-            if (std::get<0>(obstacleArray[i]) > 4 && std::get<0>(obstacleArray[i]) < finish_line_length - 4)
-            {
-                WriteStringToBuffer(nextBuffer, std::get<0>(obstacleArray[i]), std::get<1>(obstacleArray[i]), "XXXX");
-            }
-        } */
 }
-
-// Render the game state
-/* void Render()
-{
-    // Clear each row
-    if (time_elapsed_update % (1000000000 / ticks_per_second) < (500000000 / ticks_per_second))
-    {
-        for (int i = 0; i < rows; i++)
-            ITUGames::Console::ClearLine(offset + (spacing * i));
-    }
-    // Print finish line
-    ITUGames::Console::GotoCoords(0, finish_line);
-    for (int i = 0; i < finish_line_length; i++)
-    {
-        std::cout << '#' << std::flush;
-    }
-
-    // Print player
-    ITUGames::Console::GotoCoords(std::get<0>(position), std::get<1>(position));
-    if (bZero)
-    {
-        ITUGames::Console::RenderCharacter('0');
-    }
-    else
-        ITUGames::Console::RenderCharacter('O');
-
-    // Clear previous player position
-    ITUGames::Console::GotoCoords(std::get<0>(last_position), std::get<1>(last_position));
-    ITUGames::Console::RenderCharacter(' ');
-
-    // Print each obstacle
-    if (time_elapsed_update % (1000000000 / ticks_per_second) < (500000000 / ticks_per_second))
-    {
-        for (int i = 0; i < obstacleArray.size(); i += 4)
-        {
-            if (std::get<0>(obstacleArray[i]) > 4 && std::get<0>(obstacleArray[i]) < finish_line_length - 4)
-            {
-                ITUGames::Console::GotoCoords(std::get<0>(obstacleArray[i]), std::get<1>(obstacleArray[i]));
-                std::cout << "XXXX" << std::flush << "\r";
-            }
-        }
-    }
-} */
 
 void WriteCharToBuffer(ScreenBuffer &buffer, int x, int y, char ch)
 {
@@ -410,3 +358,46 @@ void SwapBuffersAndRender()
     currentBuffer = nextBuffer;
     nextBuffer.buffer.clear();
 }
+
+// Render the game state
+/* void Render()
+{
+    // Clear each row
+    if (time_elapsed_update % (1000000000 / ticks_per_second) < (500000000 / ticks_per_second))
+    {
+        for (int i = 0; i < rows; i++)
+            ITUGames::Console::ClearLine(offset + (spacing * i));
+    }
+    // Print finish line
+    ITUGames::Console::GotoCoords(0, finish_line_height);
+    for (int i = 0; i < finish_line_length; i++)
+    {
+        std::cout << '#' << std::flush;
+    }
+
+    // Print player
+    ITUGames::Console::GotoCoords(std::get<0>(position), std::get<1>(position));
+    if (bZero)
+    {
+        ITUGames::Console::RenderCharacter('0');
+    }
+    else
+        ITUGames::Console::RenderCharacter('O');
+
+    // Clear previous player position
+    ITUGames::Console::GotoCoords(std::get<0>(last_position), std::get<1>(last_position));
+    ITUGames::Console::RenderCharacter(' ');
+
+    // Print each obstacle
+    if (time_elapsed_update % (1000000000 / ticks_per_second) < (500000000 / ticks_per_second))
+    {
+        for (int i = 0; i < obstacleArray.size(); i += 4)
+        {
+            if (std::get<0>(obstacleArray[i]) > 4 && std::get<0>(obstacleArray[i]) < finish_line_length - 4)
+            {
+                ITUGames::Console::GotoCoords(std::get<0>(obstacleArray[i]), std::get<1>(obstacleArray[i]));
+                std::cout << "XXXX" << std::flush << "\r";
+            }
+        }
+    }
+} */
